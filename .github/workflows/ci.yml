@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: ros-tooling/setup-ros@v0.7
+        with:
+          required-ros-distributions: jazzy
+      
+      - run: |
+          sudo apt-get update
+          sudo rosdep init || true
+          rosdep update
+          rosdep install --from-paths src --ignore-src -r -y --rosdistro jazzy
+      
+      - run: |
+          source /opt/ros/jazzy/setup.bash
+          colcon build --cmake-args -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON
+      
+      - run: |
+          source /opt/ros/jazzy/setup.bash
+          source install/setup.bash
+          colcon test --return-code-on-test-failure
+      
+      - run: colcon test-result --verbose || true
